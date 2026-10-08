@@ -1,0 +1,6 @@
+# Default owners for everything in this repository.
+* @techflosdev/maintainers
+
+# Hub workflows & templates — maintainers
+.github/ @techflosdev/maintainers
+profile/ @techflosdev/maintainers

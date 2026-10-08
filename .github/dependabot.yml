@@ -1,0 +1,41 @@
+# Sample Dependabot config for the org hub.
+# Product repos: copy to .github/dependabot.yml and enable ecosystems you use.
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: chore
+      include: scope
+    reviewers:
+      - techflosdev/maintainers
+
+  # --- Uncomment / adapt for product repos ---
+  # - package-ecosystem: npm
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #   open-pull-requests-limit: 10
+  #   labels: [dependencies]
+  #   reviewers: [techflosdev/maintainers]
+  #
+  # - package-ecosystem: pip
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #   labels: [dependencies]
+  #   reviewers: [techflosdev/maintainers]
+  #
+  # - package-ecosystem: docker
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #   labels: [dependencies]

@@ -1,0 +1,172 @@
+name: CI
+
+# Reusable CI hub for techflosdev product repos.
+# Call from another repository:
+#   jobs:
+#     ci:
+#       uses: techflosdev/.github/.github/workflows/ci.yml@main
+#       with:
+#         run-lint: true
+#         run-test: true
+#         node-version: "20"
+#
+# TODO: replace placeholder lint/test commands with real npm/pytest (etc.) scripts
+# via workflow_call inputs. Defaults are no-op-safe so template repos stay green.
+
+on:
+  workflow_call:
+    inputs:
+      run-lint:
+        description: Run the lint job
+        type: boolean
+        default: true
+      run-test:
+        description: Run the test job
+        type: boolean
+        default: true
+      node-version:
+        description: Node.js version (empty skips Node setup unless package-manager is set)
+        type: string
+        default: "20"
+      python-version:
+        description: Python version (empty skips Python setup)
+        type: string
+        default: ""
+      package-manager:
+        description: "Package manager hint: npm | pnpm | yarn | none"
+        type: string
+        default: "none"
+      lint-command:
+        description: Shell command for lint (empty = placeholder pass)
+        type: string
+        default: ""
+      test-command:
+        description: Shell command for test (empty = placeholder pass)
+        type: string
+        default: ""
+      working-directory:
+        description: Working directory for lint/test commands
+        type: string
+        default: "."
+  workflow_dispatch:
+    inputs:
+      run-lint:
+        description: Run the lint job
+        type: boolean
+        default: true
+      run-test:
+        description: Run the test job
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    # On push/PR, inputs.* is empty → treat as enabled. On call/dispatch, honor boolean.
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || inputs.run-lint }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ inputs.package-manager != '' && inputs.package-manager != 'none' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version || '20' }}
+
+      - name: Setup Python
+        if: ${{ inputs.python-version != '' && inputs.python-version != null }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Lint
+        working-directory: ${{ inputs.working-directory || '.' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CMD="${{ inputs.lint-command }}"
+          if [ -n "$CMD" ]; then
+            echo "Running lint command: $CMD"
+            eval "$CMD"
+          else
+            # TODO: callers should pass lint-command (e.g. npm run lint / ruff check .)
+            echo "No lint-command provided — placeholder pass."
+            echo "Wire a real command via workflow_call inputs when adopting this reusable workflow."
+          fi
+
+  test:
+    name: Test
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || inputs.run-test }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Placeholder matrix — extend in product callers or call this workflow per environment.
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ inputs.package-manager != '' && inputs.package-manager != 'none' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version || '20' }}
+
+      - name: Setup Python
+        if: ${{ inputs.python-version != '' && inputs.python-version != null }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Test
+        working-directory: ${{ inputs.working-directory || '.' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CMD="${{ inputs.test-command }}"
+          if [ -n "$CMD" ]; then
+            echo "Running test command: $CMD"
+            eval "$CMD"
+          else
+            # TODO: callers should pass test-command (e.g. npm test / pytest -q)
+            echo "No test-command provided — placeholder pass."
+            echo "Wire a real command via workflow_call inputs when adopting this reusable workflow."
+          fi
+
+  ci-success:
+    name: CI Success
+    if: ${{ always() }}
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        shell: bash
+        run: |
+          set -euo pipefail
+          lint_result="${{ needs.lint.result }}"
+          test_result="${{ needs.test.result }}"
+          echo "lint=$lint_result test=$test_result"
+          for r in "$lint_result" "$test_result"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "Required job failed or was cancelled."
+              exit 1
+            fi
+          done
+          echo "CI gate passed (jobs succeeded or were skipped)."
