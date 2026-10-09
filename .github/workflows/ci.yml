@@ -81,17 +81,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         if: ${{ inputs.package-manager != '' && inputs.package-manager != 'none' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node-version || '20' }}
 
       - name: Setup Python
         if: ${{ inputs.python-version != '' && inputs.python-version != null }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
 
@@ -121,17 +121,17 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         if: ${{ inputs.package-manager != '' && inputs.package-manager != 'none' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node-version || '20' }}
 
       - name: Setup Python
         if: ${{ inputs.python-version != '' && inputs.python-version != null }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
 
